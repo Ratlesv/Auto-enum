@@ -1,0 +1,9 @@
+blog.urbancompany.com
+careers.urbancompany.com
+chat.urbancompany.com
+dev-chat.urbancompany.com
+m.urbancompany.com
+partner.urbancompany.com
+stage-chat.urbancompany.com
+urbancompany.com
+www.urbancompany.com
