@@ -10,6 +10,8 @@ fi
    #     exit 1
 #fi
 
+rm -rf dirscan third-levels *.txt
+
 WS="dirscan/";
 if [ ! -d "$WS" ]; then
     mkdir $WS
@@ -33,8 +35,8 @@ if
 then
 	echo "Compiling third-level subdomains..."
 	cat subdomains.txt | grep -Po "(\w+\.\w+\.\w+)$" | sort -u > third-level-subdomains.txt 
-	echo "Gathering full third-level domains with Amass..."
-	for domain in $(cat third-level-subdomains.txt); do python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $domain -o third-levels/$domain.txt ; cat third-levels/subdomains.txt | sort -u >> subdomains.txt;done
+	echo "Gathering full third-level domains with Sublist3r..."
+	for domain in $(cat third-level-subdomains.txt); do python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $domain -o third-levels/3dsubdomains.txt | sort -u; cat third-levels/3dsubdomains.txt | grep -Po "(\w+\.\w+\.\w+\.\w+)$" >> subdomains.txt  ;done
 	if [ $# -eq 2 ];
 	then
         echo "Probing for alive third-levels with httprobe..."
@@ -55,23 +57,34 @@ else
                 	cat subdomains.txt | sort -u | httprobe -s -p https:443 | sed 's/https\?:\/\///'  | tr -d ":443" > probed.txt
         	fi
 fi
+clear
+
 echo "Cleaning some files"
-rm -rf third-level-subdomains.txt third-levels
+rm third-level-subdomains.txt 
 echo "Running Gospider on all found URL's in subdomains (This may take a long time)"
 awk '$0="https://"$0' probed.txt | sort -u | waybackurls > spiderlinks.txt
 awk '$0="https://"$0' probed.txt | sort -u  >> spiderlinks.txt
 
-gospider -S spiderlinks.txt -c 10 -d 5 --blacklist ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt)" --other-source | grep -e "code-200"| awk '{print $5}'| grep "=" | qsreplace -a | >> dirscan/gospider.txt 
-
-#for webdir in $(cat spiderlinks.txt); do ffuf -w ~/BugBounty/Wordlists/common.txt -u $webdir/FUZZ -recursion -recursion-depth 3 -c -v -maxtime 60 >> dirscan/ffuf.txt;done
-
-echo "Making neat exploitation links in nucleilinks.txt and xsssqli.txt
-cat dirscan/* | grep -o -E "(([a-zA-Z][a-zA-Z0-9+-.]*\:\/\/)|mailto|data\:)([a-zA-Z0-9\.\&\/\?\:@\+-\_=#%;,])*" | grep $1 | sort -u  > exploitlinks.txt
+gospider -S spiderlinks.txt > dirscan/gospider.txt
 
 clear
 
+echo "Running hakrawler to get all left-over links"
+for hak in $(cat spiderlinks.txt); do hakrawler -urls -subs -robots -forms  -url $hak > dirscan/hakrawler.txt;done
+
+
+#for webdir in $(cat spiderlinks.txt); do ffuf -w ~/BugBounty/Wordlists/common.txt -u $webdir/FUZZ -recursion -recursion-depth 3 -c -v -maxtime 60 >> dirscan/ffuf.txt;done
+
+echo "Making neat exploitation links with gf and some awkawk3000.."
+
+cat dirscan/* | grep $1 | grep -e = | grep url | grep -o -E "(([a-zA-Z][a-zA-Z0-9+-.]*\:\/\/)|mailto|data\:)([a-zA-Z0-9\.\&\/\?\:@\+-\_=#%;,])*" | sort -u > injectionlinks.txt
+#cat dirscan/* | gf sqli | grep -e "code-200"| awk '{print $5}' | sort -u | qsreplace -a > sqli.txt
+#cat dirscan/* | gf xss | grep -e "code-200"| awk '{print $5}' | sort -u | qsreplace -a > xss.txt
+#cat dirscan/* | gf lfi | grep -e "code-200"| awk '{print $5}' | sort -u | qsreplace -a > lfi.txt
+
+
 echo "Running XSS scans on links.."
 
-cat exploitlinks.txt | dalfox pipe | tee xssresults.txt
+cat injectionlinks.txt | dalfox pipe > injectionresults.txt
 
-for sqli in $(cat exploitlinks.txt); do python3 ~/BugBounty/Tools/DSSS/dsss.py -u $sqli > sqliresults.txt
+for sqli in $(cat injectionlinks.txt); do python3 ~/BugBounty/Tools/DSSS/dsss.py -u $sqli > sqliresults.txt;done
