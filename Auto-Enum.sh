@@ -132,7 +132,7 @@ if [ ! -d "$RES" ]; then
 fi
 
 echo "Exploiting links with nuclei templates..."
-nuclei -t nuclei-templates/* -l nuclei.txt -o results/nuclei-results.txt
+nuclei -t nuclei-templates/ -l nuclei.txt -o results/nuclei-results.txt
 
 
 echo "Scanning is done, please refer to results and other text files to see what I found..."
