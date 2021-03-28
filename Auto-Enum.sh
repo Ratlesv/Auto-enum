@@ -103,7 +103,7 @@ cat spiderlinks2.txt > spiderlinks.txt
 rm spiderlinks2.txt
 #for webdir in $(cat spiderlinks.txt); do ffuf -w ~/BugBounty/Wordlists/common.txt -u $webdir/FUZZ -recursion -recursion-depth 3 -c -v -maxtime 60 >> dirscan/ffuf.txt;done
 echo "Making neat exploitation links with gf and some awkawk3000.." 
-for patt in $(cat patterns); do gf $patt spiderlinks.txt >> interestinglinks.txt ; done
+for patt in $(cat patterns); do gf $patt spiderlinks.txt | grep $1 | sort -u  >> interestinglinks.txt ; done
 
 awk '$0="https://"$0' probed.txt | sort -u >> interestinglinks.txt
 awk '$0="http://"$0' probed.txt | sort -u  >> interestinglinks.txt
@@ -111,11 +111,11 @@ awk '$0="http://"$0' probed.txt | sort -u  >> interestinglinks.txt
 
 echo "Running XSS scans on links.."
 
-cat interestinglinks.txt | dalfox pipe > results/xss-results.txt
+cat interestinglinks.txt | gf xss | dalfox pipe > results/xss-results.txt
 
 echo "Running SQL Injections on links"
 # DSSS is a little slow, I'll try something else
-for sqli in $(cat interestinglinks.txt); do python3 ~/BugBounty/Tools/DSSS/dsss.py -u $sqli >> results/sqliresults.txt;done
+for sqli in $(cat interestinglinks.txt | gf sqli); do python3 ~/BugBounty/Tools/DSSS/dsss.py -u $sqli >> results/sqliresults.txt;done
 #for sqli in $(cat injectionlinks.txt); do sqlmap -u $sqli --batch >> sqliresults.txt; done
 
 
