@@ -118,7 +118,7 @@ echo "Running XSS scans on links.."
 cat links/xss-links.txt | dalfox pipe > results/xss-results.txt
 
 echo "Running SQL Injections on links"
-for sqli in $(cat links/sqli-links.txt.txt); do python3 ~/BugBounty/Tools/DSSS/dsss.py -u $sqli >> results/sqliresults.txt;done
+for sqli in $(cat links/sqli-links.txt); do python3 ~/BugBounty/Tools/DSSS/dsss.py -u $sqli >> results/sqliresults.txt;done
 
 
 echo "Cleaning up files!"
