@@ -2,10 +2,14 @@
 
 # This script is supposed to help install all the necessary tools to run an automated scan of a domain.
 
-sudo apt-get update
-sudo apt-get upgrade
+echo "updating and upgrading"
 
+sudo apt-get update -y
+sudo apt-get upgrade -y
+
+clear
 # Install necessary official packages
+echo "installing necessary official packages"
 
 sudo apt-get install -y libcurl4-openssl-dev
 sudo apt-get install -y libssl-dev
@@ -24,6 +28,8 @@ sudo apt-get install -y xargs
 sudo apt-get install -y golang
 sudo apt-get install -y python-dnspython
 
+clear
+
 # Ready directories for downloads
 
 echo "Making Directories for downloads"
@@ -31,7 +37,14 @@ echo "Making Directories for downloads"
 mkdir ~/BugBounty
 mkdir ~/BugBounty/Tools
 
-# Start downloading and installin tools
+# Start downloading and installing tools
+echo "getting nuclei-patterns"
+git clone https://github.com/projectdiscovery/nuclei-templates.git
+echo "nuclei-patterns successfully received"
+# hakrawler - https://github.com/hakluke/hakrawler
+echo "installing hakrawler"
+go get github.com/hakluke/hakrawler
+echo "hakrawler installed"
 
 # ffuf - https://github.com/ffuf/ffuf
 echo "installing ffuf" 
@@ -46,6 +59,13 @@ echo "installing httprobe"
 go get -u github.com/tomnomnom/httprobe
 
 echo "httprobe installed"
+
+# httpx - https://github.com/projectdiscovery/httpx
+echo "installing httpx"
+
+GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx
+
+echo "httpx installed"
 
 # Gospider - https://github.com/jaeles-project/gospider
 echo "installing Gospider"
@@ -100,7 +120,9 @@ cd ~/BugBounty/Tools/
 git clone https://github.com/aboul3la/Sublist3r
 cd Sublist3r
 pip3 install -r requirements
-
+git clone https://github.com/rthalley/dnspython
+cd dnspython
+sudo python3 setup.py install
 cd ~
 # Dalfox - https://github.com/hahwul/dalfox​
 echo "Installing dalfox"
@@ -112,5 +134,16 @@ echo "dalfox installed"
 # Blind XSS - https://xsshunter.com
 # Requires registration (best to replace this with something more mobile)
 
-sudo mv ~/go/bin/* /bin/
-
+#GF-Patterns https://github.com/tomnomnom/gf
+echo "Installing gf patterns"
+go get -u github.com/tomnomnom/gf
+cd ~
+mkdir .gf
+cd .gf
+git clone https://github.com/Isaac-The-Brave/GF-Patterns-Redux
+mv GF-Patterns-Redux/*.json .
+rm -rf GF-Patterns-Redux
+echo "Installed gf patterns"
+clear
+#Installing Auto-Enum - https://github.com/Isaac-The-Brave/Auto-Enum
+echo "Installation finished. Please check ~/BugBounty and ~/Auto-Enum for future reference"
