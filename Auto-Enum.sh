@@ -29,6 +29,10 @@ if [ ! -d "$RES" ]; then
     mkdir $RES
 fi
 
+TL="links/";
+if [ ! -d "$TL" ]; then
+    mkdir $TL
+fi
 
 echo "Gathering subdomains with Sublist3r..."
 
@@ -81,7 +85,7 @@ echo "Done with the first hakrawler scan."
 cat dirscan/hakrawler.txt >> spiderlinks2.txt
 cat spiderlinks2.txt|  grep $1 | gf urls | sort -u | qsreplace -a | tr -d '*' >> spiderlinks.txt
 rm spiderlinks2.txt
-echo "Running Gospider for the first time on hakrawler links (If this takes a long time, the second one will be VERY long)"
+echo "Running Gospider on hakrawler links (Things start taking a while from this point onwards. Be patient.)"
 
 gospider -S spiderlinks.txt >> spiderlinks2.txt
 
@@ -107,21 +111,17 @@ for patt in $(cat patterns); do gf $patt spiderlinks.txt | grep $1 | sort -u  >>
 
 awk '$0="https://"$0' probed.txt | sort -u >> interestinglinks.txt
 awk '$0="http://"$0' probed.txt | sort -u  >> interestinglinks.txt
-
-
+echo "generating links to exploit"
+for patt in $(cat patterns); do gf $patt interestinglinks.txt | grep $1 | qsreplace -a | sort -u > links/$patt-links.txt;done
 echo "Running XSS scans on links.."
 
-cat interestinglinks.txt | gf xss | dalfox pipe > results/xss-results.txt
+cat links/xss-links.txt | dalfox pipe > results/xss-results.txt
 
 echo "Running SQL Injections on links"
-for sqli in $(cat interestinglinks.txt | qsreplace -a | sort -u | gf sqli); do python3 ~/BugBounty/Tools/DSSS/dsss.py -u $sqli >> results/sqliresults.txt;done
+for sqli in $(cat links/sqli-links.txt.txt); do python3 ~/BugBounty/Tools/DSSS/dsss.py -u $sqli >> results/sqliresults.txt;done
 
 
-echo "Cleaning up files..."
-RES="results/";
-if [ ! -d "$RES" ]; then
-    mkdir $RES
-fi
+echo "Cleaning up files!"
 
 echo "Exploiting links with nuclei templates..."
 nuclei -t nuclei-templates/ -l interestinglinks.txt -o results/nuclei-results.txt
