@@ -38,6 +38,11 @@ mkdir ~/BugBounty
 mkdir ~/BugBounty/Tools
 
 # Start downloading and installing tools
+echo "installing and updating wpscan" 
+sudo gem install wpscan
+wpscan --update
+
+echo "wpscan installed and updated"
 echo "getting nuclei-patterns"
 git clone https://github.com/projectdiscovery/nuclei-templates.git
 echo "nuclei-patterns successfully received"
