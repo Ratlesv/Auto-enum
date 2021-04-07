@@ -114,8 +114,8 @@ awk '$0="http://"$0' probed.txt | sort -u  >> interestinglinks.txt
 echo "generating links to exploit"
 for patt in $(cat patterns); do gf $patt interestinglinks.txt | grep $1 | qsreplace -a | sort -u > links/$patt-links.txt;done
 echo "Running a wordpress scan on all wp-login.php links"
-cat interestinglinks.txt | gf urls | gf wordpress| grep  -F "wp-login.php" | sed 's/?.*//' > links/wp-login.txt
-for wplog in $(cat links/wp-login.txt); do wpscan -u $wplog --batch --follow-redirection --disable-tls-checks >> results/wpscanresults.txt; done
+cat interestinglinks.txt | gf urls | gf wordpress| grep  -F "wp-login.php" | sort -u | sed 's/?.*//' > links/wp-login.txt
+for wplog in $(cat links/wp-login.txt); do wpscan --url $wplog  >> results/wpscanresults.txt; done
 
 echo "Running XSS scans on links.."
 
