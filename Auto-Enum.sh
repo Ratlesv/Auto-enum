@@ -84,21 +84,20 @@ cat dirscan/hakrawler.txt
 echo "Done with the first hakrawler scan."
 
 cat dirscan/hakrawler.txt >> spiderlinks2.txt
-cat spiderlinks2.txt|  grep $1 | gf urls | sort -u | qsreplace -a | tr -d '*' >> spiderlinks.txt
+cat spiderlinks2.txt|  grep $1 | gf urls | sort -u | tr -d '*' | qsreplace 'input' >> spiderlinks.txt
 rm spiderlinks2.txt
 echo "Running Gospider on hakrawler links (Things start taking a while from this point onwards. Be patient.)"
 
 gospider -S spiderlinks.txt >> spiderlinks2.txt
 
-cat spiderlinks2.txt | grep $1 | gf urls | sort -u | tr -d '*' | qsreplace -a | >> spiderlinks.txt
+cat spiderlinks2.txt | grep $1 | gf urls | sort -u | tr -d '*' | qsreplace 'input' >> spiderlinks.txt
 rm spiderlinks2.txt
 
 
 
 echo "Done with the first GoSpider scan!"
 echo "Running Waybackmachine on all successfully probed domain names"
-awk '$0="https://"$0' probed.txt| waybackurls | grep $1 | sort -u >> spiderlinks.txt
-awk '$0="https://"$0' probed.txt | sort -u  >> spiderlinks.txt
+awk '$0="https://"$0' probed.txt| waybackurls | grep $1 | qsreplace 'input' | sort -u >> spiderlinks.txt
 echo "Waybackmachine search finished."
 
 echo "Link crawling is now finished; find results in text file: spiderlinks.txt"
@@ -113,7 +112,7 @@ for patt in $(cat patterns); do gf $patt spiderlinks.txt | grep $1 | sort -u  >>
 awk '$0="https://"$0' probed.txt | sort -u >> interestinglinks.txt
 awk '$0="http://"$0' probed.txt | sort -u  >> interestinglinks.txt
 echo "generating links to exploit"
-for patt in $(cat patterns); do gf $patt interestinglinks.txt | grep $1 | qsreplace -a | sort -u > links/$patt-links.txt;done
+for patt in $(cat patterns); do gf $patt interestinglinks.txt | grep $1 | qsreplace 'input' | sort -u > links/$patt-links.txt;done
 echo "Running XSS scans on links.."
 
 cat links/xss-links.txt | dalfox pipe > results/xss-results.txt
