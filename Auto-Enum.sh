@@ -1,3 +1,11 @@
+if [ $# -eq 0 ]; then
+
+        echo "Usage: ./script.sh <domain>"
+        echo "Example: ./script.sh yahoo.com"
+        exit 1
+fi
+
+
 if [ $# -gt 1 ]; then
         echo "Usage: ./script.sh <domain>"
         echo "Example: ./script.sh yahoo.com"
@@ -17,7 +25,7 @@ if [ ! -d "$WS" ]; then
     mkdir $WS
 fi
 
-TD="third-levels/";
+TD="fourth-levels/";
 if [ ! -d "$TD" ]; then
     # If it doesn't create it
     mkdir $TD
@@ -34,6 +42,11 @@ if [ ! -d "$TL" ]; then
     mkdir $TL
 fi
 
+
+#Recon and enumeration
+echo "Reconnaisance started:"
+
+
 echo "Gathering subdomains with Sublist3r..."
 
 python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $1 -o subdomains.txt
@@ -41,13 +54,14 @@ echo $1 > subdomains.txt
 # In case sublist3r finds nothing, it's important to at least have the tried domain in the subdomain list, this is why I use this command.
 
 
+# This Regex searches for xxx.xxx.xxx domains and shoves them into sublist3r again to see if there are any fourth-level subdomains to take!
 if
         cat subdomains.txt | grep -Po "(\w+\.\w+\.\w+)$"
 then
         echo "Compiling third-level subdomains..."
         cat subdomains.txt | grep -Po "(\w+\.\w+\.\w+)$" | sort -u > third-level-subdomains.txt
         echo "Gathering fourth-level domains with Sublist3r..."
-#       for domain in $(cat third-level-subdomains.txt); do python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $domain -o third-levels/$domain.txt ;done
+        for domain in $(cat third-level-subdomains.txt); do python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $domain -o fourth-levels/$domain.txt ;done
         if [ $# -eq 2 ];
         then
         echo "Probing for alive third-levels with httprobe..."
@@ -69,56 +83,57 @@ else
                 fi
 fi
 
-
+#Looks for fourth level subdomains and shoves them into our subdomains file.
 echo "Cleaning some files"
-cat third-levels/* | grep -Po "(\w+\.\w+\.\w+\.\w+)$"
-rm -rf third-level-subdomains.txt third-levels/
-
-
-
-echo "Running hakrawler to crawl links from live hosts"
+cat third-levels/* | grep -Po "(\w+\.\w+\.\w+\.\w+)$" >> subdomains.txt
+rm -rf third-level-subdomains.txt fourth-levels/
+echo "Shuffling files"
+#Adds http and https to the successfully probed domains to crawl. I use HTTP because not everyone is HTTPS Compliant and I wouldn't want to miss those. (Could possible double the scan time. Watch out)
 awk '$0="https://"$0' probed.txt | sort -u  > spiderlinks.txt
 awk '$0="http://"$0' probed.txt | sort -u  >> spiderlinks.txt
-for hak in $(cat spiderlinks.txt); do hakrawler -all -url $hak >> dirscan/hakrawler.txt;done
-cat dirscan/hakrawler.txt
-echo "Done with the first hakrawler scan."
 
-cat dirscan/hakrawler.txt >> spiderlinks2.txt
-cat spiderlinks2.txt|  grep $1 | gf urls | sort -u | tr -d '*' | qsreplace 'input' >> spiderlinks.txt
-rm spiderlinks2.txt
-echo "Running Gospider on hakrawler links (Things start taking a while from this point onwards. Be patient.)"
+
+#Runs Waybackurls to find old links (Some of them are no longer visible on google, some lucky break might occur)
+echo "Running Waybackmachine on all successfully probed domain names"
+awk '$0="https://"$0' probed.txt| waybackurls | grep $1 | qsreplace 'input' | sort -u | httpx -mc 200 >> spiderlinks.txt
+cat spiderlinks.txt | waybackurls | gf urls| qsreplace 'input' | sort -u | gf urls | tee spiderlinks2.txt
+echo "Waybackmachine search finished."
+
+#Runs Gospider on all picked up domains to find any links assosciated with them, cleans them up into URL's within our scope and moves them to the next step (EXPLOITATION!)
+
+echo "Running Gospider on domains (Things start taking a while from this point onwards. Be patient.)"
 
 gospider -S spiderlinks.txt >> spiderlinks2.txt
 
 cat spiderlinks2.txt | grep $1 | gf urls | sort -u | tr -d '*' | qsreplace 'input' >> spiderlinks.txt
 rm spiderlinks2.txt
-
-
-
-echo "Done with the first GoSpider scan!"
-echo "Running Waybackmachine on all successfully probed domain names"
-awk '$0="https://"$0' probed.txt| waybackurls | grep $1 | qsreplace 'input' | sort -u >> spiderlinks.txt
-echo "Waybackmachine search finished."
-
+echo "Done with the GoSpider scan!"
 echo "Link crawling is now finished; find results in text file: spiderlinks.txt"
-echo "Probing all found URL's with HTTPX for all CODE 200 results."
-cat spiderlinks.txt | httpx -mc 200 > spiderlinks2.txt
-cat spiderlinks2.txt > spiderlinks.txt
-rm spiderlinks2.txt
-#for webdir in $(cat spiderlinks.txt); do ffuf -w ~/BugBounty/Wordlists/common.txt -u $webdir/FUZZ -recursion -recursion-depth 3 -c -v -maxtime 60 >> dirscan/ffuf.txt;done
-echo "Making neat exploitation links with gf and some awkawk3000.."
-for patt in $(cat patterns); do gf $patt spiderlinks.txt | grep $1 | sort -u  >> interestinglinks.txt ; done
 
+#Uses gf to find possible injection points. (GF Patterns can be independently modified and I recommend you do so, a lot of parameters can go unnoticed with many of the patterns on github)
+
+echo "Making neat exploitation links with gf"
 awk '$0="https://"$0' probed.txt | sort -u >> interestinglinks.txt
 awk '$0="http://"$0' probed.txt | sort -u  >> interestinglinks.txt
 echo "generating links to exploit"
-for patt in $(cat patterns); do gf $patt interestinglinks.txt | grep $1 | qsreplace 'input' | sort -u > links/$patt-links.txt;done
+for patt in $(cat patterns); do gf $patt spiderlinks.txt | grep $1 | qsreplace 'input' | sort -u >  links/$patt-links.txt;done
+
+clear
+
+# Uses fimap to search for Local File Inclusion vulnerabilities
+echo "Using fimap to scan for LFI vulns"
+python2 ~/BugBounty/Tools/fimap/src/fimap.py -m -l links/lfi-links.txt -w results/lfi-results.txt
+echo "fimap scan finished"
+# Uses dalfox to exploit links found by crawling and waybackurls
+echo "Started vulnerability scanning. Please maintain your patience"
+
 echo "Running XSS scans on links.."
 
-cat links/xss-links.txt | dalfox pipe > results/xss-results.txt
+cat links/xss-links.txt | dalfox pipe | tee results/xss-results.txt
 
+#Uses the perfectly crafted SQLMAP to find vulnerabilities in HTTP headers, PHP cookies and the provided input (Overall 10/10 tool)
 echo "Running SQL Injections on links"
-for sqli in $(cat links/sqli-links.txt); do python3 ~/BugBounty/Tools/DSSS/dsss.py -u $sqli >> results/sqliresults.txt;done
+sqlmap -m links/sqli-links.txt --batch --level 2 | tee results/sqli-results.txt
 
 
 echo "Cleaning up files!"
@@ -128,3 +143,5 @@ nuclei -t nuclei-templates/ -l interestinglinks.txt -o results/nuclei-results.tx
 
 
 echo "Scanning is done, please refer to results and other text files to see what I found..."
+echo "Successful SQL Injections:"
+cat results/sqli-results.txt | grep
