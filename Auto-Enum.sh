@@ -68,8 +68,8 @@ then
         for domain in $(cat third-level-subdomains.txt); do python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $domain -o fourth-levels/$domain.txt ;done
         if [ $# -eq 2 ];
         then
-        echo "Probing for alive third-levels with httprobe..."
-        cat third-level-subdomains.txt | sort -u | grep -v $2 | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > probed.txt
+        echo "Probing for alive fourth-level with httprobe..."
+        cat fourth-level/* | sort -u | grep -v $2 | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > probed.txt
         else
                 echo "Probing for alive third-levels with httprobe..."
                 cat subdomains.txt | sort -u | httprobe -s -p https:443 | sed 's/https\?:\/\///'  | tr -d ":443" > probed.txt
@@ -142,7 +142,7 @@ echo "Cleaning up files!"
 echo "Exploiting links with nuclei templates..."
 nuclei -t nuclei-templates/ -l interestinglinks.txt -o results/nuclei-results.txt
 
-echo "Checking for valid waybackurls"
-httpx -mc 200 -l waybackurls.txt > spiderlinks.txt
+#echo "Checking for valid waybackurls"
+#httpx -mc 200 -l waybackurls.txt > spiderlinks.txt
 
 echo "Scanning is done, please refer to results and other text files to see what I found..."
