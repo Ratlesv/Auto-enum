@@ -37,7 +37,8 @@ fi
 echo "Gathering subdomains with Sublist3r..."
 
 python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $1 -o subdomains.txt
-
+echo $1 > subdomains.txt
+# In case sublist3r finds nothing, it's important to at least have the tried domain in the subdomain list, this is why I use this command.
 
 
 if
