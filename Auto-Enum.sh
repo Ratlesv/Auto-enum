@@ -89,7 +89,7 @@ fi
 
 #Looks for fourth level subdomains and shoves them into our subdomains file.
 echo "Cleaning some files"
-cat fourth-levels/*.txt
+rm -rf fourth-levels/
 echo "Shuffling files"
 #Adds http and https to the successfully probed domains to crawl. I use HTTP because not everyone is HTTPS Compliant and I wouldn't want to miss those. (Could possible double the scan time. Watch out)
 awk '$0="https://"$0' probed.txt | sort -u >> spiderlinks.txt
@@ -98,16 +98,16 @@ awk '$0="http://"$0' probed.txt | sort -u  >> spiderlinks.txt
 
 #Runs Waybackurls to find old links (Some of them are no longer visible on google, some lucky break might occur)
 echo "Running Waybackmachine on all successfully probed domain names"
-awk '$0="https://"$0' probed.txt | waybackurls | grep $1 | qsreplace 'input' | sort -u  >> waybackurls.txt
+awk '$0="https://"$0' probed.txt | waybackurls | grep $1 | qsreplace -a 'input' | sort -u  >> waybackurls.txt
 echo "Waybackmachine search finished."
 
 #Runs Gospider on all picked up domains to find any links assosciated with them, cleans them up into URL's within our scope and moves them to the next step (EXPLOITATION!)
 
 echo "Running Gospider on domains (Things start taking a while from this point onwards. Be patient.)"
 
-gospider -S spiderlinks.txt -c 10 -d 5 --blacklist ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt)" --other-source > spiderlinks2.txt
+gospider -S spiderlinks.txt -c 10 -d 5 --blacklist ".(jpg|jpeg|gif|css|tif|tiff|png|ttf|woff|woff2|ico|pdf|svg|txt)" | tee spiderlinks2.txt
 
-cat spiderlinks2.txt | gf urls | grep $1 | sort -u | qsreplace 'input' >> spiderlinks.txt
+cat spiderlinks2.txt | gf urls | grep $1 | qsreplace -a 'input' | sort -u  >> spiderlinks.txt
 rm spiderlinks2.txt
 echo "Done with the GoSpider scan!"
 echo "Link crawling is now finished; find results in text file: spiderlinks.txt"
@@ -116,8 +116,8 @@ echo "Link crawling is now finished; find results in text file: spiderlinks.txt"
 
 echo "Making neat exploitation links with gf"
 echo "generating links to exploit"
-for patt in $(cat patterns); do gf $patt spiderlinks.txt | grep $1 | qsreplace 'input' | sort -u | tee linkstemp/$patt-links.txt;done
-for patt in $(cat patterns); do cat linkstemp/$patt-links.txt | gf $patt | httpx -mc 200 > links/$patt-links.txt;done
+for patt in $(cat patterns); do gf $patt spiderlinks.txt | grep $1 | qsreplace -a | sort -u | tee linkstemp/$patt-links.txt;done
+for patt in $(cat patterns); do cat linkstemp/$patt-links.txt | gf $patt | qsreplace -a | sort -u | httpx > links/$patt-links.txt;done
 rm -rf linkstemp/
 clear
 
@@ -140,9 +140,9 @@ sqlmap -m links/sqli-links.txt --batch --level 2 | tee results/sqli-results.txt
 echo "Cleaning up files!"
 
 echo "Exploiting links with nuclei templates..."
-nuclei -t nuclei-templates/ -l interestinglinks.txt -o results/nuclei-results.txt
+nuclei -t nuclei-templates/ -l spiderlinks.txt -o results/nuclei-results.txt
 
 #echo "Checking for valid waybackurls"
-#httpx -mc 200 -l waybackurls.txt > spiderlinks.txt
+#httpx -l waybackurls.txt > spiderlinks.txt
 
 echo "Scanning is done, please refer to results and other text files to see what I found..."
