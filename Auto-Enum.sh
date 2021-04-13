@@ -65,7 +65,7 @@ then
         echo "Compiling third-level subdomains..."
         cat subdomains.txt | grep -Po "(\w+\.\w+\.\w+)$" | sort -u > third-level-subdomains.txt
         echo "Gathering fourth-level domains with Sublist3r..."
-        for domain in $(cat third-level-subdomains.txt); do python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $domain -o fourth-levels/$domain.txt ;done
+        #for domain in $(cat third-level-subdomains.txt); do python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $domain -o fourth-levels/$domain.txt ;done
         if [ $# -eq 2 ];
         then
         echo "Probing for alive fourth-level with httprobe..."
