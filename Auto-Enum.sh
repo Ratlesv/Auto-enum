@@ -141,6 +141,8 @@ echo "Checking for valid waybackurls"
 #Runs Waybackurls to find old links (Some of them are no longer visible on google, some lucky break might occur)
 echo "Running Waybackmachine on all successfully probed domain names"
 awk '$0="https://"$0' probed.txt | waybackurls | grep $1 | qsreplace -a 'input' | sort -u  >> waybackurls.txt
-echo "Waybackmachine search finished."#httpx -l waybackurls.txt > spiderlinks.txt
+echo "Waybackmachine search finished."
+
+#httpx -l waybackurls.txt > spiderlinks.txt
 
 echo "Scanning is done, please refer to results and other text files to see what I found..."
