@@ -65,7 +65,7 @@ then
         echo "Compiling third-level subdomains..."
         cat subdomains.txt | grep -Po "(\w+\.\w+\.\w+)$" | sort -u > third-level-subdomains.txt
         echo "Gathering fourth-level domains with Sublist3r..."
-        #for domain in $(cat third-level-subdomains.txt); do python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $domain -o fourth-levels/$domain.txt ;done
+       # for domain in $(cat third-level-subdomains.txt); do python3 ~/BugBounty/Tools/Sublist3r/sublist3r.py -d $domain -o fourth-levels/$domain.txt ;done
         if [ $# -eq 2 ];
         then
         echo "Probing for alive fourth-level with httprobe..."
@@ -95,11 +95,6 @@ echo "Shuffling files"
 awk '$0="https://"$0' probed.txt | sort -u >> spiderlinks.txt
 awk '$0="http://"$0' probed.txt | sort -u  >> spiderlinks.txt
 
-
-#Runs Waybackurls to find old links (Some of them are no longer visible on google, some lucky break might occur)
-echo "Running Waybackmachine on all successfully probed domain names"
-awk '$0="https://"$0' probed.txt | waybackurls | grep $1 | qsreplace -a 'input' | sort -u  >> waybackurls.txt
-echo "Waybackmachine search finished."
 
 #Runs Gospider on all picked up domains to find any links assosciated with them, cleans them up into URL's within our scope and moves them to the next step (EXPLOITATION!)
 
@@ -140,9 +135,12 @@ sqlmap -m links/sqli-links.txt --batch --level 2 | tee results/sqli-results.txt
 echo "Cleaning up files!"
 
 echo "Exploiting links with nuclei templates..."
-nuclei -t nuclei-templates/ -l spiderlinks.txt -o results/nuclei-results.txt
+#nuclei -t nuclei-templates/ -l spiderlinks.txt -o results/nuclei-results.txt
 
-#echo "Checking for valid waybackurls"
-#httpx -l waybackurls.txt > spiderlinks.txt
+echo "Checking for valid waybackurls"
+#Runs Waybackurls to find old links (Some of them are no longer visible on google, some lucky break might occur)
+echo "Running Waybackmachine on all successfully probed domain names"
+awk '$0="https://"$0' probed.txt | waybackurls | grep $1 | qsreplace -a 'input' | sort -u  >> waybackurls.txt
+echo "Waybackmachine search finished."#httpx -l waybackurls.txt > spiderlinks.txt
 
 echo "Scanning is done, please refer to results and other text files to see what I found..."
